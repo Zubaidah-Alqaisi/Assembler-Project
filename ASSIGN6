@@ -1,0 +1,740 @@
+//KC03GEFA JOB ,'MYERS-ALQAISI',MSGCLASS=H                              00010000
+//*                                                                     00020000
+//************************************************************          00030000
+//*                                                          *          00040000
+//* CSCI 465/565 - FALL 2017                                 *          00050000
+//*                                                          *          00060000
+//* ASSIGNMENT 6 - QSAM                                      *          00060101
+//*                                                          *          00060201
+//* PROGRAMMERS: ZUBAIDAH ALQAISI                            *          00060301
+//*                                                          *          00060401
+//* DUE DATE: 11/06/2017                                     *          00060501
+//* DUE TIME: 11:59 PM                                       *          00060601
+//*                                                          *          00060701
+//* PROGRAM FUNCTION:                                        *          00060801
+//* THIS PROGRAM USES INSTREAM ASSEMBLER SOURCE CODE TO      *          00060901
+//* FIRST ASSEMBLE THE ASSEMBLER SOURCE CODE, THEN BIND      *          00061001
+//* AND LASTLY FETCH AND EXECUTE.                            *          00061101
+//*                                                          *          00061201
+//************************************************************          00061301
+//*                                                                     00061401
+//************************************************************          00061501
+//*                                                          *          00061601
+//* JSTEP01 CALLS THE ASSEMBLER PROGRAM MODULE AND ASSEMBLES *          00061701
+//* THE ASSEMBLER SOURCE CODE INSTREAM.                      *          00061801
+//*                                                          *          00061901
+//* DDNAME               FILE DESCRIPTION                    *          00062001
+//*                                                          *          00062101
+//* SYSLIB     INPUT:  CALLS THE IBM MACRO LIBRARY           *          00062201
+//* SYSIN      INPUT:  BEGINS INSTREAM ASSEMBLER SOURCE CODE *          00062301
+//* SYSLIN     INPUT:  A TEMPORARY DATA TO PASS TO THE       *          00062401
+//*                    BINDER IN JSTEP02                     *          00062501
+//* SYSPRINT   OUTPUT: SOURCE LISTING AND DIAGNOSTIC         *          00062601
+//*                    MESSAGES                              *          00062701
+//* SYSUT1     INPUT:  SCRATCH DATASET FOR ASSEMBLY          *          00062801
+//*                                                          *          00062901
+//************************************************************          00063001
+//*                                                                     00063101
+//JSTEP01  EXEC PGM=ASMA90,PARM=ASA                                     00063201
+//*                                                                     00063301
+//SYSLIB   DD DSN=SYS1.MACLIB,                                          00063401
+//            DISP=SHR                                                  00063501
+//*                                                                     00063601
+//SYSIN    DD *                                                         00063701
+         PRINT  NOGEN                                                   00063801
+*********************************************************************** 00063900
+*                                      	                               *        00064000
+* PROGRAM: MAIN                                                       * 00064100
+* AUTHOR: MITCH MYERS AND ZUBAIDAH ALQAISI                            * 00064200
+* DATE:  10/24/2017                                                   * 00064300
+*                                                                     * 00064400
+* FUNCTION:  THIS PROGRAM UTILIZES 5 ASSEMBLER QSAM MACROS.           * 00064500
+*            THE PROGRAM READS IN TWO 80 BYTE REPORTS, AND            * 00064600
+*            MANIPULATES THE NUMERICAL DATA BY PACKING ZONED          * 00064700
+*            DECIMALS AND MOVEING THEM TO EDIT LINES.                 * 00064800
+*                                                                     * 00064900
+* INPUT:     INPUT - THE INPUT DATA RECORDS READ IN FROM DATA5        * 00065000
+*                                                                     * 00065100
+* OUTPUT:    THIS PROGRAM PRINTS OUT TWO REPORTS, A BROKER SALES      * 00065200
+*            COMMISSION REPORT, AND A LARGE DEPOSITORS REPORT.        * 00065300
+*            EACH REPORT FEATURES HEADERS THAT DISPLAY THE CURRENT    * 00065400
+*            DATE, TIME AND PAGE NUMBER. EACH REPORT PRINTS ONLY      * 00065500
+*            15 ENTRIES PER LINE, DOUBLE SPACED.                      * 00065600
+*                                                                     * 00065700
+*********************************************************************** 00065800
+*                                                                       00065900
+*********************************************************************** 00066000
+*                      BEGIN MAIN ROUTINE                             * 00066100
+*********************************************************************** 00066200
+*                                                                       00066300
+MAIN     CSECT                          BEGIN MAIN                      00066400
+*                                                                       00066501
+         STM   14,12,12(13)             SAVE CALLER'S REGS              00066600
+         LR    12,15                    SET R12 TO R15                  00066700
+         USING MAIN,12                  ESTABLISH R12 AS 1ST BASE REG   00066800
+         LA    11,4095(,12)             ESTABLISH R11 AS 2ND BASE REG   00066900
+         LA    11,1(,11)                LOAD R11 AFTER MAX OF R12       00067000
+        
+                                                                        00067100
+         LA    14,MAINSAVE              R14 -> CURRENT SAVE AREA        00067200
+         ST    13,4(,14)                SAVE CALLER'S SAVE AREA ADDR    00067300
+         ST    14,8(,14)                SAVE CURRENT SAVE AREA ADDR     00067400
+         LR    13,14                    R13 -> CURRENT SAVE AREA        00067500
+*                                                                       00067600
+*********************************************************************** 00067700
+*                      CALLING TIME MACRO                             * 00067800
+*********************************************************************** 00067900
+*                                                                       00068000
+         TIME  DEC,DATETIME,LINKAGE=SYSTEM,DATETYPE=MMDDYYYY            00068100
+*                                                                       00068200
+*********************************************************************** 00068300
+*                      INPUT FILE ROUTINE                             * 00068400
+*********************************************************************** 00068500
+*                                                                       00068600
+         OPEN  (INDCB,(INPUT))          OPEN INPUT FILE                 00068700
+         LTR   15,15                    CHECK FOR SUCCESSFUL OPEN       00068800
+         BZ    OPENOK1                  BRANCH IF SUCCESSFUL TO OPENOK1 00068900
+         ABEND 777,DUMP                 ABEND IF OPEN FAILS DISPLAY 777 00069000
+*                                                                       00069156
+OPENOK1  OPEN  (OUTDCB,(OUTPUT))        OPEN OUTPUT FILE                00069200
+         LTR   15,15                    CHECK FOR SUCCESSFUL OPEN       00069300
+         BZ    OPENOK2                  BRANCH IF SUCCESSFUL TO OPENOK2 00069400
+         ABEND 888,DUMP                 ABEND IF OPEN FAILS DISPLAY 888 00069500
+*                                                                       00069601
+OPENOK2  OPEN  (TEMPDCB,(OUTPUT))       OPEN THE TEMPORARY OUTPUT FILE  00069700
+         LTR   15,15                    CHECK FOR SUCCESSFUL OPEN       00069800
+         BZ    OPENOK3                  BRANCH IF SUCCESSFUL TO OPENOK3 00069900
+         ABEND 444,DUMP                 ABEND IF OPEN FAILS DISPLAY 444 00070000
+*                                                                       00070100
+OPENOK3  GET   INDCB,INBUFFER           READ THE 80 BYTE FUND RECORD    00070200
+*                                                                       00070300
+         MVC   OFUNDNME(25),IFUNDNME    MOVE THE FUND NAME              00070489
+*                                                                       00070589
+         PACK  PSHRPRC(3),ISHRPRC(5)    PACK THE SHARE PRICE            00070600
+         MVC   OSHRPRC(7),ESHRPRC       MOVE THE EDIT PATTERN TO OUTPUT 00070700
+         LA    1,OSHRPRC+3              DEFAULT LOC FOR $0.00           00070899
+         EDMK  OSHRPRC(7),PSHRPRC       EDIT THE SHARE PRICE            00070900
+         BCTR  1,0                      DECREMENTING REGISTER 1         00071000
+         MVI   0(1),C'$'                MOVE $ TO SHARE PRICE           00071100
+*                                                                       00071200
+         PACK  PCOMPCT1(4),ICOM1(6)     PACK COMMISSION PERCENTAGE 1    00071300
+         PACK  PCOMPCT2(4),ICOM2(6)     PACK COMMISSION PERCENTAGE 2    00071400
+         PACK  PCOMPCT3(4),ICOM3(6)     PACK COMMISSION PERCENTAGE 3    00071500
+*                                                                       00071642
+         LA    7,99                     SET REG7 AS COUNTER TO 99       00072300
+         LA    8,15                     SET REG8 TO BRANCH COND ON 15   00072400
+*                                                                       00072556
+         MVC   OUTDATE-2(13),EDATE      EDIT THE DATE PATTERN           00072600
+         ED    OUTDATE-2(13),DATETIME+7                                 00072700
+         MVC   OUTTIME1-2(11),ETIME     EDIT THE TIME PATTERN           00072900
+         ED    OUTTIME1-2(11),DATETIME-1                                00073000
+*                                                                       00073100
+*********************************************************************** 00073200
+*              REPORT 1 INPUT DATA PROCESSING ROUTINE                 * 00073300
+*********************************************************************** 00073400
+*                                                                       00073500
+         GET   INDCB,INDEPREC           READ FIRST DEPOSIT RECORD       00073699
+*                                                                       00073799
+LOOP1    CLI   EOFFLAG1,C'Y'            TEST FOR EOF                    00073899
+         BE    ENDLOOP1                 BRANCH IF EOF                   00073956
+*                                                                       00074000
+PRNTHDR  CR    7,8                      COMPARE REG7 TO REG 8           00075700
+         BL    CONTPRC1                 IF NOT 15 LINES KEEP PROCESSING 00075800
+*                                                                       00075900
+         AP    PGCOUNT(2),=PL1'1'       ADD 1 TO THE PAGE COUNT         00076000
+         MVC   OUTPAGE(4),EPAGE         MOVE PATTERN TO PRINT LINE      00076100
+         ED    OUTPAGE(4),PGCOUNT       EDIT THE PAGE COUNTER           00076200
+*                                                                       00076800
+         PUT   OUTDCB                   PRINT FIRST PAGE HEADER LINE    00077199
+         MVC   0(133,1),PRTHDRL1+1      MOVING PGHDR LINE TO PRINT ADDR 00077200
+         PUT   OUTDCB                   PRINT 2ND PAGE HEADER LINE      00077400
+         MVC   0(133,1),PRTHDRL2+1      MOVING 2ND HDR TO PRINT ADDRESS 00077500
+         PUT   OUTDCB                   PRINT 3RD PAGE HEADER LINE      00077600
+         MVC   0(133,1),PRTHDRL3        MOVING 3RD HDR TO PRINT ADDR    00077700
+         PUT   OUTDCB                   PRINT THE COLUMN HEADERS        00077899
+         MVC   0(133,1),COLUMN1         MOVING COLUMN HDR TO PRINT ADDR 00077900
+         PUT   OUTDCB                   PRINT THE COLUMN HYPHENS        00078099
+         MVC   0(133,1),HYPHEN1         MOVING COLMN HYPH TO PRINT ADDR 00078100
+*                                                                       00078200
+         SR    7,7                      ZERO REG7 TO RESET COUNTER      00078300
+*                                                                       00078400
+CONTPRC1 MVC   OBRANME(25),IBRANME      MOVE BRANCH NAME TO OUTPUT      00078500
+         MVC   OBRONME(25),IBRONME      MOVE BROKER NAME TO OUTPUT      00078656
+*                                                                       00078742
+         PACK  PDEPAMT(7),IDEPAMT(13)   PACK DEPOSIT AMOUNT             00078856
+         PACK  PCOMFLAG(1),ICOMFLAG(1)  PACK COMMISSION FLAG            00078900
+*                                                                       00079041
+         LA    1,ODEPAMT + 14           DEFAULT LOCATION FOR $0.00      00079100
+         MVC   ODEPAMT(18),EDEPAMT      MOVE THE EDIT PATTERN TO OUTPUT 00079256
+         EDMK  ODEPAMT(18),PDEPAMT      EDIT THE DEPOSIT AMOUNT         00079356
+         BCTR  1,0                      DECREMENT REGISTER 1 TO 0       00079456
+         MVI   0(1),C'$'                MOVE $ TO DEPOSIT AMOUNT        00079556
+*                                                                       00079641
+         AP    PNUMSALE(2),=PL1'1'      CALCULATING NUMBER OF SALES     00079700
+         AP    PTDEPAMT(8),PDEPAMT(7)   CALCULATING DEPOSIT TOTAL AMT   00079800
+*                                                                       00079900
+         ZAP   PSHRAMT(12),PDEPAMT(7)   MOVE TO LARGER FIELD            00080000
+         SRP   PSHRAMT(12),4,0          SHIFT ROUND PACK BY 4 DIGITS    00080100
+         DP    PSHRAMT(12),PSHRPRC(3)   CALCULATING SHARE AMOUNT        00080200
+         SRP   PSHRAMT(9),64-1,5        SHIFT AND ROUND PACK            00080300
+         SRP   PSHRAMT(9),1,0           SHIFT AND ROUND PACK BY 1 DIGIT 00080400
+         MVC   OSHRAMT(23),ESHRAMT      MOVE PATTERN TO OUTPUT          00080500
+         ED    OSHRAMT(23),PSHRAMT      EDIT THE SHARE AMOUNT           00080600
+*                                                                       00080741
+IF0      CP    PSHRAMT(9),PTHRSHLD(6)   COMPARE FOR THRESHOLD           00080800
+         BL    ENDIF0                                                   00080900
+         MVC   OTBRKNME(25),IBRONME     MOVE BROKER NAME TO OUTPUT      00081000
+         ZAP   OTPSHRAM(9),PSHRAMT(9)   MOVE PATTERN TO OUTPUT          00081100
+*                                                                       00081200
+         PUT   TEMPDCB,TEMPREC          MOVE DATA INTO TEMP FILE        00081300
+*                                                                       00081400
+ENDIF0   AP    PTSHRAMT(13),PSHRAMT(9)  CALCULATE SHARE AMOUNT TOTAL    00081500
+*                                                                       00081600
+         ZAP   PCOMAMT(11),PDEPAMT(7)   MOVE TO LARGER FIELD            00081700
+*                                                                       00081800
+IF1      CP    PCOMFLAG,=PL1'1'         COMPARE COMMISSION FLAG         00081900
+         BNE   IF2                      BRANCH TO IF2 IF NOT EQUAL TO 1 00082000
+         MP    PCOMAMT(11),PCOMPCT1(4)  MULTIPLY COMM AMOUNT BY COUNT   00082100
+         B     ENDIF                    END IF                          00082200
+*                                                                       00082300
+IF2      CP    PCOMFLAG,=P'2'           COMPARE COMMISSION FLAG         00082400
+         BNE   IF3                      BRANCH TO IF3 IF NOT EQUAL TO 2 00082500
+         MP    PCOMAMT(11),PCOMPCT2(4)  MULTIPLY COMM AMOUNT BY COUNT   00082600
+         B     ENDIF                    END IF                          00082700
+*                                                                       00082800
+IF3      MP    PCOMAMT(11),PCOMPCT3(4)  MULTIPLY COMM AMOUNT BY COUNT   00082900
+*                                                                       00083000
+ENDIF    SRP   PCOMAMT(11),64-5,5       SHIFT AND ROUND PACK            00083100
+*                                                                       00083200
+         LA    1,OCOMAMT+14             DEFAULT LOCATION FRO $0.00      00083300
+         MVC   OCOMAMT(18),ECOMAMT      MOVE TO EDIT FIELD              00083400
+         EDMK  OCOMAMT(18),PCOMAMT+4    EDIT THE COMMISSION OUTPUT      00083500
+         BCTR  1,0                      DECREMENTING REGISTER 1         00083600
+         MVI   0(1),C'$'                MOVE $ TO COMMISSION AMOUNT     00083700
+*                                                                       00083800
+         AP    PTCOMAMT(12),PCOMAMT(11) CALCULATING COMM AMOUNT TOTAL   00083900
+*                                                                       00084000
+         PUT   OUTDCB                   WRITE THE PRINT DATA TO OUTPUT  00084199
+         MVC   0(133,1),DETAIL1         MOVING PRNT DATA TO PRNT ADDR   00084200
+*                                                                       00084400
+         LA    7,1(,7)                  INCREMENT REG7 COUNTER BY 1     00084500
+*                                                                       00084617
+         GET   INDCB,INDEPREC           GET THE NEXT DEPOSIT RECORD     00084700
+*                                                                       00084800
+         B     LOOP1                    BACK TO LOOP1                   00084999
+*                                                                       00085000
+ENDLOOP1 CLOSE (INDCB)                  CLOSE THE INPUT DCB             00085100
+*                                                                       00085200
+         AP    PGCOUNT(2),=PL1'1'       ADD 1 TO THE PAGE COUNT         00085300
+         MVC   OUTPAGE(4),EPAGE         MOVE PATTERN TO PRINT LINE      00085400
+         ED    OUTPAGE(4),PGCOUNT       EDIT THE PAGE COUNTER           00085500
+*                                                                       00085600
+         MVC   ONUMSALE(4),ENUMSALE     MOVE PATTERN TO OUTPUT          00085700
+         ED    ONUMSALE(4),PNUMSALE     EDIT NUMBER OF SALES            00085800
+*                                                                       00085900
+         MVC   OUTTIME2-2(11),ETIME     EDIT THE DATE PATTERN           00086000
+         ED    OUTTIME2-2(11),DATETIME-1                                00086100
+*                                                                       00086200
+         PUT   OUTDCB                   PRINT FIRST PAGE HEADER LINE    00086399
+         MVC   0(133,1),PRTHDRL1+1      PRNT 1ST PAGE TO PRINT ADDR     00086400
+         PUT   OUTDCB                   PRINT 4TH PAGE HEADER LINE      00086500
+         MVC   0(133,1),PRTHDRL4+1      MOVING 4TH PG HDR TO PRNT ADDR  00086600
+         PUT   OUTDCB                   PRINT 3RD PAGE HEADER LINE      00086700
+         MVC   0(133,1),PRTHDRL3        MOVING 3RD PGE HDR TO PRT ADDR  00086800
+         PUT   OUTDCB                   PRINT THE COLUMN HEADERS        00086999
+         MVC   0(133,1),COLUMN2         MOVING COLUMN HDR TO PRINT ADDR 00087099
+         PUT   OUTDCB                   PRINT THE COLUMN HYPHENS        00087199
+         MVC   0(133,1),HYPHEN2         MOVING COLMN HYPH TO PRINT ADDR 00087299
+*                                                                       00087300
+         LA    1,OTDEPAMT+17            DEFAULT LOCATION FOR $0.00      00087400
+         MVC   OTDEPAMT(21),ETDEPAMT    MOVE PATTERN TO PRINT LINE      00087500
+         EDMK  OTDEPAMT(21),PTDEPAMT    EDIT THE TOTAL DEPOSIT AMOUNT   00087600
+         BCTR  1,0                      DECREMENT REGISTER 1            00087700
+         MVI   0(1),C'$'                MOVE $ TO TOTAL DEPOSIT AMOUNT  00087800
+*                                                                       00087900
+         MVC   OTSHRAMT(34),ETSHRAMT    MOVE PATTERN TO PRINT LINE      00088000
+         ED    OTSHRAMT(34),PTSHRAMT    EDIT THE TOTAL SHARE AMOUNT     00088199
+*                                                                       00088200
+         LA    1,OTCOMAMT+27            DEFAULT LOCATION FOR $0.00      00088300
+         MVC   OTCOMAMT(31),ETCOMAMT    MOVE PATTERN TO PRINT LINE      00088400
+         EDMK  OTCOMAMT(31),PTCOMAMT    EDIT THE TOTAL COMM AMOUNT      00088500
+         BCTR  1,0                      DECREMENT REGISTER 1            00088600
+         MVI   0(1),C'$'                MOVE $ TO TOTAL COMM AMOUNT     00088700
+*                                                                       00088800
+         PUT   OUTDCB                   WRITE THE NEXT TOTALS RECORD    00088999
+         MVC   0(133,1),DETAIL2        MOVE NEXT TOT TO PRINT ADDRESS   00089000
+*                                                                       00089300
+*********************************************************************** 00089400
+*                   TEMPORARY DCB STORAGE ROUTINE                     * 00089500
+*********************************************************************** 00089600
+*                                                                       00089700
+         CLOSE (INDCB,,TEMPDCB)         CLOSE TEMP AND INPUT FILES      00089800
+*                                                                       00089900
+         OPEN  (TEMPDCB,(INPUT))        OPEN INPUT FILE                 00090000
+         LTR   15,15                    CHECK FOR SUCCESSFUL OPEN       00090100
+         BZ    OPENOK4                  BRANCH IF SUCCESSFUL OPENOK4    00090200
+         ABEND 555,DUMP                 ABEND IF OPEN FAILS DISPLAY 555 00090300
+*                                                                       00090400
+OPENOK4  ZAP   PGCOUNT(2),=PL1'0'       ZERO OUT THE PAGE COUNTER       00090599
+*                                                                       00090600
+         LA    7,99                     SET REG7 AS COUNTER TO 99       00090800
+*                                                                       00090900
+         MVC   OUTTIME3-2(11),ETIME     EDIT THE TIME PATTERN           00091000
+         ED    OUTTIME3-2(11),DATETIME-1                                00091100
+*                                                                       00091200
+*********************************************************************** 00091300
+*              REPORT 2 INPUT DATA PROCESSING ROUTINE                 * 00091400
+*********************************************************************** 00091500
+*                                                                       00091600
+         GET   TEMPDCB                  GET FIRST RECORD IN TEMP FILE   00091799
+*                                                                       00091899
+LOOP2    CLI   EOFFLAG2,C'Y'            CHECK FOR EOF                   00091999
+         BE    ENDLOOP2                 BRANCH ENDLOOP2 IF NOT EQUAL    00092000
+         MVC   TEMPREC(34),0(1)         MOVE THE 34 BYTES TO TEMP REC   00092199
+*                                                                       00092200
+PRNTHDR2 CR    7,8                      COMPARE REG7 TO REG 8           00092300
+         BL    CONTPRC2                 IF NOT 15 LINES KEEP PROCESSING 00092400
+*                                                                       00092500
+         AP    PGCOUNT(2),=PL1'1'       ADD 1 TO THE PAGE COUNT         00092600
+         MVC   OUTPAGE(4),EPAGE         MOVE PATTERN TO PRINT LINE      00092700
+         ED    OUTPAGE(4),PGCOUNT       EDIT THE PAGE COUNTER           00092800
+*                                                                       00092900
+         PUT   OUTDCB                   PRINT FIRST PAGE HEADER LINE    00093099
+         MVC   0(133,1),PRTHDRL1+1      MOVE 1ST PAGE HDR TO PRINT ADDR 00093100
+         PUT   OUTDCB                   PRINT 5TH PAGE HEADER LINE      00093200
+         MVC   0(133,1),PRTHDRL5+1      MOVE 5TH PAGE HDR TO PRINT ADDR 00093300
+         PUT   OUTDCB                   PRINT THE COLUMN HEADERS        00093499
+         MVC   0(133,1),COLUMN3         MOVE COLUMN HDRS TO PRINT ADDR  00093599
+         PUT   OUTDCB                   PRINT THE COLUMN HYPHENS        00093699
+         MVC   0(133,1),HYPHEN3         MOVE COUMN HYPHEN TO PRINT ADDR 00093799
+*                                                                       00093800
+         SR    7,7                      ZERO REG7 TO RESET COUNTER      00093900
+*                                                                       00094000
+CONTPRC2 MVC   OBRONME2(25),OTBRKNME    MOVE BROKER NAME TO OUTPUT      00094100
+         MVC   OSHRAMT2(23),ESHRAMT     MOVE PATTERN OF SHARE AMOUNT    00094200
+         ED    OSHRAMT2(23),OTPSHRAM    EDIT TEMP SHARE AMOUNT          00094300
+*                                                                       00094400
+         AP    PTSALNUM(2),=PL1'1'      ADD 1 TO TEMP SALES NUMBER      00094500
+         AP    PTSHRTMP(10),OTPSHRAM(9) CALCULATING TEMP TOTAL SHARES   00094600
+*                                                                       00094700
+         PUT   OUTDCB                   PRINT TEMPORARY RECORD          00094899
+         MVC   0(133,1),DETAIL3         MOVE TEMP REC TO PRINT ADDRESS  00094999
+*                                                                       00095100
+         LA    7,1(,7)                  INCREMENT REG7 COUNTER BY 1     00095200
+*                                                                       00095300
+         GET   TEMPDCB                  GET THE NEXT TEMP RECORD        00095499
+*                                                                       00095500
+         B     LOOP2                    BRANCH TO TOP OF LOOP2          00095600
+*                                                                       00095700
+ENDLOOP2 MVC   ONUMSALE(4),ENUMSALE     MOVE PATTERN TO OUTPUT          00095800
+         ED    ONUMSALE(4),PNUMSALE     EDIT NUMBER OF SALES            00095900
+*                                                                       00096000
+         MVC   ONUMSAL2(4),ETNUMSA2     MOVE THE PATERN TO PRINT LINE   00096100
+         ED    ONUMSAL2(4),PTSALNUM     EDIT NUMBER OF SALES IN TEMP    00096200
+*                                                                       00096300
+         MVC   OTSRAMT2(25),ETSRAMT2    MOVE PATTERN TO PRINT LINE      00096400
+         ED    OTSRAMT2(25),PTSHRTMP    EDIT TOTAL SHARE SOLD IN TEMP   00096500
+*                                                                       00096600
+         MVC   OUTTIME4-2(11),ETIME     EDIT THE TIME PATTERN           00096700
+         ED    OUTTIME4-2(11),DATETIME-1                                00096800
+*                                                                       00096900
+         AP    PGCOUNT(2),=PL1'1'       ADD 1 TO THE PAGE COUNT         00097000
+         MVC   OUTPAGE(4),EPAGE         MOVE PATTERN TO PRINT LINE      00097100
+         ED    OUTPAGE(4),PGCOUNT       EDIT THE PAGE COUNTER           00097200
+*                                                                       00097300
+         PUT   OUTDCB                   PRINT FIRST PAGE HEADER LINE    00097499
+         MVC   0(133,1),PRTHDRL1+1      MOVE 1ST PAGE HDR TO PRINT ADDR 00097500
+         PUT   OUTDCB                   PRINT 6TH PAGE HEADER LINE      00097600
+         MVC   0(133,1),PRTHDRL6+1      MOVE 6TH PAGE HDR TO PRINT ADDR 00097700
+         PUT   OUTDCB                   PRINT THE COLUMN HEADERS        00097899
+         MVC   0(133,1),COLUMN4         MOVE COLUMN HDRS TO PRINT ADDR  00097999
+         PUT   OUTDCB                   PRINT THE COLUMN HYPHENS        00098099
+         MVC   0(133,1),HYPHEN4         MOVE COLMN HYPHEN TO PRINT ADDR 00098199
+*                                                                       00098200
+         PUT   OUTDCB                   PRINT SECOND TEMP REPORT        00098399
+         MVC   0(133,1),DETAIL4         MOVE 2ND TEMP REP TO PRINT ADDR 00098400
+*                                                                       00098500
+*********************************************************************** 00098600
+*                   CLOSE OUTPUT RECORD ROUTINE                       * 00098700
+*********************************************************************** 00098800
+*                                                                       00098900
+         CLOSE (OUTDCB,,TEMPDCB)        CLOSE OUTPUT AND TEMP FILE      00099000
+*                                                                       00099100
+         L     13,4(,13)                R13 -> CALLER'S SAVE AREA       00099200
+         L     14,12(,13)               RESTORE R14                     00099300
+         LM    0,12,20(13)             RESTORE R0 THROUGH R12           00099400
+*                                                                       00099517
+         BR    14                       RETURN TO CALLER                00099600
+*                                                                       00099717
+*********************************************************************** 00099800
+*                 LITERAL POOL AND PROGRAM STORAGE                    * 00099900
+*********************************************************************** 00100000
+*                                                                       00100100
+         LTORG                          LTORG TO ORGANIZE LITERALS      00100200
+*                                                                       00100317
+         ORG   MAIN+((*-MAIN+31)/32)*32                                 00100417
+         DC    C'HERE IS THE STORAGE FOR THIS PGM'                      00100517
+*                                                                       00100600
+*********************************************************************** 00100700
+*                       PROGRAM STORAGE AREA                          * 00100800
+*********************************************************************** 00100900
+*                                                                       00101017
+MAINSAVE DC    18F'-1'                  MAINREGS FOR STANDARD LINKAGE   00101100
+*                                                                       00101217
+PSHRPRC  DC    PL3'0'                   PACKED SHARE PRICE              00101300
+PDEPAMT  DC    PL7'0'                   PACKED DEPOSIT AMOUNT           00101400
+PSHRAMT  DC    PL12'0'                  PACKED SHARE AMOUNT             00101500
+PCOMFLAG DC    PL1'0'                   PACKED COMMISSION FLAG          00101600
+PCOMAMT  DC    PL11'0'                  PACKED COMMISSION AMOUNT        00101700
+PCOMPCT1 DC    PL4'0'                   PACKED COMMISSION PERCENT 1     00101800
+PCOMPCT2 DC    PL4'0'                   PACKED COMMISSION PERCENT 2     00101900
+PCOMPCT3 DC    PL4'0'                   PACKED COMMISSION PERCENT 3     00102000
+PNUMSALE DC    PL2'0'                   PACKED NUMBER OF SALES          00102100
+PTDEPAMT DC    PL8'0'                   PACKED TOTAL FOR DEPOSIT AMOUNT 00102200
+PTSHRAMT DC    PL13'0'                  PACKED TOTAL FOR SHARE AMOUNT   00102300
+PTCOMAMT DC    PL12'0'                  PACKED TOTAL FRO COMM AMOUNT    00102400
+PGCOUNT  DC    PL2'0'                   PACKED PAGE COUNTER             00102500
+PTHRSHLD DC    PL6'2500000000'          PACKED THRESHOLD STORAGE        00102600
+PTSALNUM DC    PL2'0'                   PACKED TEMP NUMBER OF SALES     00102700
+PTSHRTMP DC    PL10'0'                  PACKED TEMP TOTAL SHARE SOLD    00102800
+*                                                                       00102900
+INBUFFER DC    0C                       INPUT BUFFER WITH VALUE X       00103000
+ISHRPRC  DS    ZL5                      INPUT SHARE PRICE               00103100
+IFUNDNME DS    CL25                     INPUT FUND NAME                 00103200
+ICOM1    DS    ZL6                      COMMISSION PERCENT 1            00103300
+ICOM2    DS    ZL6                      COMMISSION PERCENT 2            00103400
+ICOM3    DS    ZL6                      COMMISSION PERCENT 3            00103500
+         DS    CL32                     FILLER FOR INPUT COMMISSONS     00103600
+INDEPREC DS    0C                       INPUT DEPOSIT RECORD            00103700
+IBRANME  DS    CL25                     INPUT BRANCH NAME               00103800
+IBRONME  DS    CL25                     INPUT BROKER NAME               00103900
+IDEPAMT  DS    ZL13                     INPUT DEPOSIT AMOUNT            00104000
+         DS    CL1                      FILLER FOR INPUT DEPOSIT AMT    00104100
+ICOMFLAG DS    ZL1                      INPUT COMMISSION FLAG           00104200
+         DS    CL15                     FILLER FOR INPUT COMMISSION FLG 00104300
+*                                                                       00104400
+DATETIME DS    4F                       STORAGE FOR TIME MACRO          00104500
+*                                                                       00104600
+*********************************************************************** 00104700
+*                   LINE ITEM PRINT DEFINITIONS                       * 00104800
+*********************************************************************** 00104900
+*                                                                       00105000
+DETAIL1  DC    CL1'0'                   PRINT LINE CARRIAGE CONTROL     00105100
+OBRANME  DS    CL25                     PRINT BRANCH NAME               00105200
+         DC    3C' '                    FILLER FOR PRINT RECORD         00105300
+OBRONME  DS    CL25                     PRINT BROKER NAME               00105400
+         DC    4C' '                    FILLER FOR PRINT RECORD         00105500
+ODEPAMT  DS    CL18                     PRINT DEPOSIT AMOUNT            00105600
+         DC    4C' '                    FILLER FOR PRINT RECORD         00105700
+OSHRAMT  DS    CL23                     PRINT SHARE AMOUNT              00105800
+         DC    12C' '                   FILLER FOR PRINT RECORD         00105900
+OCOMAMT  DS    CL18                     PRINT COMMISSION AMOUNT         00106000
+*                                                                       00106200
+DETAIL2  DC    CL1' '                   PRINT SINGLE SPACED LINE        00106500
+         DC    22C' '                   FILLER FOR PRINT RECORD         00106600
+ONUMSALE DS    CL4' '                   PRINT NUMBER OF SALES           00106700
+         DC    6C' '                    FILLER FOR PRINT RECORD         00106800
+OTDEPAMT DS    CL21                     PRINT TOTAL DEPOSIT AMOUNT      00106900
+OTSHRAMT DS    CL34                     PRINT TOTAL SHARES SOLD         00107000
+OTCOMAMT DS    CL31                     PRINT TOTAL COMMISSIONS         00107100
+         DC    CL14' '                  FILLER FOR HEADER PRINTING      00107200
+*                                                                       00107300
+TEMPREC  DS    0C                       TEMP RECORD STORAGE             00107400
+OTBRKNME DS    CL25                     TEMP BROKER NAME                00107500
+OTPSHRAM DC    PL9'0'                   TEMP SHARE AMOUNT               00107600
+*                                                                       00107800
+DETAIL3  DC    CL1'0'                   PRINT LINE CARRIAGE CONTROL     00107900
+         DC    32C' '                   FILLER FOR PRINT RECORD         00108000
+OBRONME2 DS    CL25                     TEMP BROKER NAME                00108100
+         DC    12C' '                   FILLER FOR PRINT RECORD         00108200
+OSHRAMT2 DS    CL23                     TEMP SHARE AMOUNT               00108300
+         DC    40C' '                   FILLER FOR PRINT RECORD         00108400
+*                                                                       00108700
+DETAIL4  DC    CL1' '                   PRINT SINGLE SPACED LINE        00108900
+         DC    CL54' '                  FILLER FOR PRINT RECORD         00109000
+ONUMSAL2 DS    CL4                      TEMP NUMBER OF SHARE SOLD       00109100
+         DC    9C' '                    FILLER FOR PRINT RECORD         00109200
+OTSRAMT2 DS    CL25                     TEMP TOTAL SHARE AMOUNT         00109300
+         DC    41C' '                   FILLER FOR PRINT RECORD         00109400
+*                                                                       00109500
+*********************************************************************** 00109600
+*                  HEADER PRINTING DEFINITITIONS                      * 00109700
+*********************************************************************** 00109800
+*                                                                       00109900
+PRTHDRL1 DC    CL1'0'                   PRINT DOUBLE SPACED             00110000
+OUTDATE  DS    CL10                     DATE AND TIME LABEL             00110100
+         DC    CL41' '                  FILLER FOR HEADER PRINTING      00110200
+OFUNDNME DS    CL25                     OUTPUT FUND NAME                00110300
+         DC    CL47' '                  FILLER FOR HEADER PRINTING      00110400
+         DC    CL6'PAGE: '              PRINTING PAGE NUMBER            00110500
+OUTPAGE  DS    CL4                      PAGE NUMBER LABEL               00110600
+*                                                                       00110700
+PRTHDRL2 DC    CL1' '                   PRINT SINGLE SPACED             00110800
+OUTTIME1 DC    CL10' '                  TIME LABEL                      00110900
+         DC    CL36' '                  FILLER FOR HEADER PRINTING      00111000
+         DC    CL36'BROKER SALES AND COMMISSIONS REPORT'                00111100
+         DC    CL51' '                  FILLER FOR HEADER PRINTING      00111200
+*                                                                       00111300
+PRTHDRL3 DC    CL1' '                   PRINT SINGLE SPACED             00111400
+         DC    CL49' '                  FILLER FOR HEADER PRINTING      00111500
+         DC    CL21'CURRENT SHARE PRICE: '                              00111600
+OSHRPRC  DS    CL6                      PRINT CURRENT SHARE PRICE       00111700
+         DC    CL57' '                  FILLER FOR HEADER PRINTING      00111800
+*                                                                       00111900
+PRTHDRL4 DC    CL1' '                   PRINT SINGLE SPACED             00112000
+OUTTIME2 DC    CL8' '                   TIME LABEL                      00112100
+         DC    CL35' '                  FILLER FOR HEADER PRINTING      00112200
+         DC    CL42'BROKER SALES AND COMMISSIONS REPORT TOTALS'         00112300
+         DC    CL48' '                  FILLER FOR HEADER PRINTING      00112400
+*                                                                       00112500
+PRTHDRL5 DC    CL1'-'                   PRINT TRIPLE SPACED             00112600
+OUTTIME3 DC    CL8' '                   TIME LABEL                      00112700
+         DC    CL39' '                  FILLER FOR HEADER PRINTING      00112800
+         DC    CL31'BROKER LARGE SHARE SALES REPORT'                    00112900
+         DC    CL55' '                  FILLER FOR HEADER PRINTING      00113000
+*                                                                       00113100
+PRTHDRL6 DC    CL1' '                   PRINT SINGLE SPACED             00113200
+OUTTIME4 DC    CL8' '                   TIME LABEL                      00113300
+         DC    CL41' '                  FILLER FOR HEADER PRINTING      00113400
+         DC    CL31'BROKER LARGE SALES REPORT TOTAL'                    00113500
+         DC    CL53' '                  FILLER FOR HEADER PRINTING      00113600
+*                                                                       00113700
+*********************************************************************** 00113800
+*                  COLUMN PRINTING DEFINITITIONS                      * 00113900
+*********************************************************************** 00114000
+*                                                                       00114100
+COLUMN1  DC    CL1'0'                   PRINT LINE CARRIAGE CONTROL     00114200
+         DC    CL11'BRANCH NAME'        PRINT THE BRANCH NAME           00114300
+         DC    CL17' '                  FILLER FOR HEADER PRINTING      00114400
+         DC    CL11'BROKER NAME'        PRINT THE BROKER NAME           00114500
+         DC    CL22' '                  FILLER FOR HEADER PRINTING      00114600
+         DC    CL14'DEPOSIT AMOUNT'     PRINT THE DEPOSIT AMOUNT        00114700
+         DC    CL16' '                  FILLER FOR HEADER PRINTING      00114800
+         DC    CL11'SHARES SOLD'        PRINT THE SHARES SOLD           00114900
+         DC    CL20' '                  FILLER FOR HEADER PRINTING      00115000
+         DC    CL10'COMMISSION'         PRINT THE COMMISSION            00115100
+*                                                                       00115200
+HYPHEN1  DC    CL26' -------------------------'                         00115300
+         DC    CL3' '                   FILLER FOR HEADER PRINTING      00115400
+         DC    CL25'-------------------------'                          00115500
+         DC    CL4' '                   FILLER FOR HEADER PRINTING      00115600
+         DC    CL18'------------------'                                 00115700
+         DC    CL4' '                   FILLER FOR HEADER PRINTING      00115800
+         DC    CL23'-----------------------'                            00115900
+         DC    CL12' '                  FILLER FOR HEADER PRINTING      00116000
+         DC    CL18'------------------'                                 00116100
+*                                                                       00116200
+COLUMN2  DC    CL1'-'                   PRINT LINE CARRIAGE CONTROL     00116300
+         DC    CL11' '                  FILLER FOR HEADER PRINTING      00116400
+         DC    CL15'NUMBER OF SALES'                                    00116500
+         DC    CL7' '                   FILLER FOR HEADER PRINTING      00116600
+         DC    CL20'TOTAL DEPOSIT AMOUNT'                               00116700
+         DC    CL17' '                  FILLER FOR HEADER PRINTING      00116800
+         DC    CL17'TOTAL SHARES SOLD'                                  00116900
+         DC    CL10' '                  FILLER FOR HEADER PRINTING      00117000
+         DC    CL21'TOTAL COMMISSION PAID'                              00117100
+         DC    CL14' '                  FILLER FOR HEADER PRINTING      00117200
+*                                                                       00117300
+HYPHEN2  DC    CL12' '                                                  00117400
+HYPHDR2  DC    CL15'---------------'                                    00117500
+         DC    CL7' '                   FILLER FOR HEADER PRINTING      00117600
+         DC    CL20'--------------------'                               00117700
+         DC    CL17' '                  FILLER FOR HEADER PRINTING      00117800
+         DC    CL17'-----------------'                                  00117900
+         DC    CL10' '                  FILLER FOR HEADER PRINTING      00118000
+         DC    CL21'---------------------'                              00118100
+         DC    CL14' '                  FILLER FOR HEADER PRINTING      00118200
+*                                                                       00118300
+COLUMN3  DC    CL1'0'                   PRINT LINE CARRIAGE CONTROL     00118400
+COLHDR3  DC    CL32' '                  FILLER FOR HEADER PRINTING      00118500
+         DC    CL11'BROKER NAME'        PRINT THE BROKER NAME           00118600
+         DC    CL38' '                  FILLER FOR HEADER PRINTING      00118700
+         DC    CL11'SHARES SOLD'        PRINT THE SHARES SOLD           00118800
+         DC    CL40' '                  FILLER FOR HEADER PRINTING      00118900
+*                                                                       00119000
+HYPHEN3  DC    CL33' '                  FILLER FOR HEADER PRINTING      00119100
+HYPHDR3  DC    CL25'-------------------------'                          00119200
+         DC    CL19' '                  FILLER FOR HEADER PRINTING      00119300
+         DC    CL16'----------------'                                   00119400
+         DC    CL42' '                  FILLER FOR HEADER PRINTING      00119500
+*                                                                       00119600
+COLUMN4  DC    CL1'0'                   PRINT LINE CARRIAGE CONTROL     00119700
+COLHDR4  DC    CL32' '                  FILLER FOR HEADER PRINTING      00119800
+         DC    CL26'NUMBER OF LARGE DEPOSITORS'                         00119900
+         DC    CL17' '                  FILLER FOR HEADER PRINTING      00120000
+         DC    CL17'TOTAL SHARES SOLD'  PRINT THE SHARES SOLD           00120100
+         DC    CL40' '                  FILLER FOR HEADER PRINTING      00120200
+*                                                                       00120300
+HYPHEN4  DC    CL33' '                  FILLER FOR HEADER PRINTING      00120400
+HYPHDR4  DC    CL26'--------------------------'                         00120500
+         DC    CL17' '                  FILLER FOR HEADER PRINTING      00120600
+         DC    CL17'------------------'                                 00120700
+         DC    CL40' '                  FILLER FOR HEADER PRINTING      00120800
+*                                                                       00120900
+*********************************************************************** 00121000
+*               PROGRAM EDIT PATTERN STORAGE AREA                     * 00121100
+*********************************************************************** 00121200
+*                                                                       00121300
+EDATE    DC    X'F0202120206120206120202020' X'61'='/'                  00121400
+ETIME    DC    X'40202120207A20207A2020' X'7A'=':'                      00121500
+ESHRPRC  DC    X'402021204B2020'                                        00121600
+ENUMSALE DC    X'40202120'                                              00121700
+EPAGE    DC    X'40202120'                                              00121800
+EDEPAMT  DC    X'4020206B2020206B2020206B2021204B2020'                  00121900
+ESHRAMT  DC    X'40206B2020206B2020206B2020206B2021204B20202020'        00122000
+ECOMAMT  DC    X'4020206B2020206B2020206B2021204B2020'                  00122100
+ETDEPAMT DC    X'40206B2020206B2020206B2020206B2021204B2020'            00122200
+ETSHRAMT DC    X'406B2020206B2020206B2020206B2020206B2020206B2020206B  X00122300
+               2021204B20202020'                                        00122400
+ETCOMAMT DC    X'402020206B2020206B2020206B2020206B2020206B2020206B20  X00122500
+               21204B2020'                                              00122600
+ETNUMSA2 DC    X'40202120'                                              00122700
+ETSRAMT2 DC    X'402020206B2020206B2020206B2020206B2021204B20202020'    00122800
+*                                                                       00122900
+*                                                                       00123000
+*********************************************************************** 00123100
+*                           DCB STORAGE                               * 00123200
+*********************************************************************** 00123300
+*                                                                       00123400
+*********************************************************************** 00123500
+*                          INPUT DCB MACRO                            * 00123600
+*********************************************************************** 00123700
+*                                                                       00123800
+INDCB    DCB   DDNAME=MAININ,                                          X00123942
+               DEVD=DA,                                                X00124042
+               DSORG=PS,                                               X00124142
+               MACRF=GM,                                               X00124242
+               RECFM=FB,                                               X00124342
+               LRECL=80,                                               X00124442
+               EODAD=EOFRTN1                                            00124599
+*                                                                       00124642
+*  INPUT DCB'S EOF FLAG AND EOF ROUTINE                                 00124742
+*                                                                       00124842
+EOFFLAG1 DC    C'N'                    EOFFLAG FOR INPUT FILE           00124999
+*                                                                       00125042
+EOFRTN1  MVI   EOFFLAG1,C'Y'           SET EOF FLAG TO Y                00125199
+         BR    14                      BRANCH TO STMT FOLLOWING GET     00125200
+*                                                                       00125300
+*********************************************************************** 00125400
+*                        OUTPUT DCB MACRO                             * 00125500
+*********************************************************************** 00125600
+*                                                                       00125700
+OUTDCB   DCB   DDNAME=MAINOUT,                                         X00125842
+               DEVD=DA,                                                X00125942
+               DSORG=PS,                                               X00126042
+               MACRF=PL,                                               X00126199
+               RECFM=FBA,                                              X00126242
+               LRECL=133,                                              X00126342
+               BLKSIZE=133                                              00126442
+*                                                                       00126500
+*********************************************************************** 00126600
+*                       TEMPORARY DCB MACRO                           * 00126700
+*********************************************************************** 00126800
+*                                                                       00126900
+TEMPDCB  DCB   DDNAME=TEMP,                                            X00127000
+               DEVD=DA,                                                X00127100
+               DSORG=PS,                                               X00127200
+               MACRF=(PM,GL),                                          X00127399
+               RECFM=FB,                                               X00127400
+               LRECL=34,                                               X00127500
+               BLKSIZE=340,                                            X00127600
+               EODAD=EOFRTN2                                            00127799
+*                                                                       00127800
+*********************************************************************** 00127900
+*                         EOF FLAG ROUTINE                            * 00128000
+*********************************************************************** 00128100
+*                                                                       00128200
+EOFFLAG2 DC    C'N'                    EOFFLAG FOR TEMP FILE            00128399
+*                                                                       00128499
+EOFRTN2  MVI   EOFFLAG2,C'Y'           SET EOF FLAG TO Y                00128599
+         BR    14                      BRANCH TO STMT FOLLOWING GET     00128699
+*                                                                       00128700
+*********************************************************************** 00128800
+*                       STANDARD EXIT LINKAGE                         * 00128900
+*********************************************************************** 00129000
+*                                                                       00129100
+         SR    15,15                   RC = 0                           00129200
+         L     13,4(,13)               R13 -> CALLER'S SAVE AREA        00129300
+         L     14,12(,13)              RESTORE R14                      00129400
+         LM    0,12,20(13)             RESTORE R0 THROUGH R12           00129500
+         BM    14                      RETURN TO CALLER                 00129600
+*                                                                       00129700
+*********************************************************************** 00129800
+*                         END MAIN ROUTINE                            * 00129900
+*********************************************************************** 00130000
+*                                                                       00130100
+         END   MAIN                                                     00130242
+/*                                                                      00130342
+//*                                                                     00130442
+//SYSLIN   DD DSN=&&OBJMOD,                                             00130542
+//            SPACE=(3040,(40,40),,,ROUND),                             00130642
+//            DISP=(MOD,PASS,DELETE)                                    00130742
+//*                                                                     00130842
+//SYSPRINT DD SYSOUT=*                                                  00130942
+//*                                                                     00131042
+//SYSUT1   DD SPACE=(3040,(40,40),,,ROUND)                              00131142
+//*                                                                     00131242
+//***********************************************************           00131342
+//*                                                         *           00131442
+//* JSTEP02 CALLS THE BINDER OR LOAD MODULE TO BIND THE     *           00131542
+//* OBJECT MODULE TO CREATE AN EXECUTABLE PROGRAM OBJECT    *           00131642
+//* OF THE ASSEMBLER PROGRAM.                               *           00131742
+//*                                                         *           00131842
+//* DDNAME                 FILE DESCRIPTION                 *           00131942
+//*                                                         *           00132042
+//* SYSLIB   INPUT:  OBJECT MODULE FOR ASSEMBLER            *           00132142
+//* SYSLIN   INPUT:  TEMPORARY OBJECT MODULE REFERENCED IN  *           00132242
+//*                  JSTEP01                                *           00132342
+//* SYSLMOD  INPUT:  THE PROGRAM OBJECT CREATED BY THE      *           00132442
+//*                  BINDER AND STORED IN A PDSE            *           00132542
+//* SYSPRINT OUTPUT: MESSAGES FROM THE BINDER               *           00132642
+//*                                                         *           00132742
+//***********************************************************           00132842
+//*                                                                     00132942
+//JSTEP02  EXEC PGM=HEWL,COND=(0,LT)                                    00133042
+//*                                                                     00133142
+//SYSLIB   DD DSN=CEE.SCEELKED,                                         00133242
+//            DISP=SHR                                                  00133342
+//*                                                                     00133442
+//SYSLIN   DD DSN=&&OBJMOD,                                             00133542
+//            DISP=(OLD,DELETE,DELETE)                                  00133642
+//*                                                                     00133742
+//SYSLMOD  DD DSN=KC03GEF.CSCI465.LOADLIB(MAIN),                        00133842
+//            SPACE=(1024,(50,20,1)),                                   00133942
+//            DSNTYPE=LIBRARY,                                          00134042
+//            DISP=(MOD,KEEP,KEEP)                                      00134142
+//*                                                                     00134242
+//SYSPRINT DD SYSOUT=*                                                  00134342
+//*                                                                     00134442
+//***********************************************************           00134542
+//*                                                         *           00134642
+//* JSTEP03 FETCHES AND EXECUTES THE OBJECT MODULE FROM THE *           00134742
+//* THE BINDER AND PRINTS TO STANDARD OUTPUT                *           00134842
+//*                                                         *           00134942
+//* DD NAME                  FILE DESCRIPTION               *           00135042
+//*                                                         *           00135142
+//* STEPLIB  INPUT: LOCATION OF THE LOAD LIBRARY PDSE       *           00135242
+//* MAININ   INPUT: THE NAME AND LOCATION OF THE INPUT FILE *           00135342
+//* MAINOUT  OUTPUT: THE OUTPUT OF THE PROGRAM AFTER        *           00135442
+//*                  EXECUTION PRINTED TO SCREEN            *           00135500
+//* TEMP     INPUT:  TEMPORARY INPUT RECORD STORAGE         *           00135600
+//* SYSUDUMP OUTPUT: DIAGNOSTIC MESSAGSES IF THE PROGRAM    *           00135742
+//*                  ABENDS                                 *           00135842
+//*                                                         *           00135942
+//***********************************************************           00136042
+//*                                                                     00136142
+//JSTEP03  EXEC PGM=MAIN,COND=(0,LT)                                    00136242
+//*                                                                     00136342
+//STEPLIB  DD DSN=KC03GEF.CSCI465.LOADLIB,                              00136442
+//            DISP=SHR                                                  00136542
+//*                                                                     00136642
+//MAININ   DD DSN=KC02322.CSCI465.DATAFA17(DATA5),                      00136742
+//            DISP=SHR                                                  00136842
+//*                                                                     00136942
+//MAINOUT  DD SYSOUT=*                                                  00137042
+//*                                                                     00137142
+//TEMP     DD SPACE=(TRK,(1,1)),                                        00137200
+//            DISP=(MOD,DELETE,DELETE)                                  00137300
+//*                                                                     00137400
+//SYSUDUMP DD SYSOUT=*                                                  00137542
+//                                                                      00137601
